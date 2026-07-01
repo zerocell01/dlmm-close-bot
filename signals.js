@@ -1,4 +1,4 @@
-import { rsi, bollingerBands, macd, supertrend } from "./indicators.js";
+import { rsi, bollingerBands, macd, supertrend, fibonacciRejection } from "./indicators.js";
 
 /**
  * Evaluate all enabled indicators against a candle set and return a
@@ -51,6 +51,21 @@ export function evaluateIndicatorSignals(candles, cfg) {
       // for a while" (which the position should have reacted to earlier).
       const bearish = result.flippedBearish || result.direction === "bearish";
       details.supertrend = { direction: result.direction, flippedBearish: result.flippedBearish, bearish };
+      totalVotes++;
+      if (bearish) bearishVotes++;
+    }
+  }
+
+  if (cfg.fibonacci?.enabled) {
+    const result = fibonacciRejection(candles, cfg.fibonacci.lookback, cfg.fibonacci.ratios);
+    if (result) {
+      const bearish = result.rejected;
+      details.fibonacci = {
+        rejected: bearish,
+        level: result.rejectedLevel?.ratio ?? null,
+        price: result.rejectedLevel ? round(result.rejectedLevel.price) : null,
+        bearish,
+      };
       totalVotes++;
       if (bearish) bearishVotes++;
     }

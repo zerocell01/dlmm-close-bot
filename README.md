@@ -19,13 +19,15 @@ proprietary Meridian.
   → trailing take-profit drop → static take-profit → out-of-range timeout.
 - **Soft signals** (cuma dicek kalau nggak ada hard rule yang fire, dan cuma
   kalau posisi udah profit): **multi-indicator confluence** — RSI, Bollinger
-  Bands, MACD, dan Supertrend dihitung dari candle harga asli (via **endpoint
-  OHLCV resmi Meteora sendiri**, gratis, no API key, rate limit 30
-  request/detik — dengan GeckoTerminal sebagai fallback kalau Meteora lagi
-  down), masing-masing "voting" bearish/nggak. Close cuma fire kalau minimal
-  N indikator setuju (default 2) — satu indikator doang yang "stretched"
-  nggak cukup buat trigger close. Plus low yield (fee/value terlalu kecil
-  terlalu lama).
+  Bands, MACD, Supertrend, dan **Fibonacci retracement rejection**, dihitung
+  dari candle harga asli (via **endpoint OHLCV resmi Meteora sendiri**,
+  gratis, no API key, rate limit 30 request/detik — dengan GeckoTerminal
+  sebagai fallback kalau Meteora lagi down), masing-masing "voting"
+  bearish/nggak. Close cuma fire kalau minimal N indikator setuju (default
+  2) — satu indikator doang yang "stretched" nggak cukup buat trigger close.
+  Plus low yield (fee/value terlalu kecil terlalu lama).
+- **Indikator mana aja yang aktif itu bisa lo pilih sendiri** lewat menu
+  interaktif (`npm run menu`) — nggak perlu edit `config.json` manual.
 - **Confirm-tick gating** — sinyal exit harus konsisten N tick berturut-turut
   (default 2) sebelum bener-bener dieksekusi, biar nggak kepancing noise satu
   data point.
@@ -48,8 +50,11 @@ kirim transaksi apapun. Perhatiin log-nya beberapa siklus, pastiin
 keputusannya masuk akal, baru set `DRY_RUN=false`.
 
 ```bash
-npm start
+npm start          # jalan di foreground, log langsung ke terminal — enak buat testing awal
 ```
+
+Atau, buat pemakaian sehari-hari, jalanin lewat menu (lihat bagian di bawah)
+biar bot jalan di background dan lo bisa tetep pake terminal buat hal lain.
 
 ## Update ke versi terbaru / push perubahan
 
@@ -63,6 +68,50 @@ chmod +x update.sh   # sekali aja
 
 Script ini otomatis nolak jalan kalau `.env` ketauan nggak ke-`.gitignore` —
 jadi private key nggak akan pernah ke-push tanpa sengaja.
+
+## Menu interaktif — kontrol semua dari sini
+
+```bash
+npm run menu
+```
+
+Menu ini jadi pusat kontrol bot, nggak perlu edit `config.json` manual atau
+`Ctrl+C` terminal buat stop:
+
+**Exit rules:**
+- `sl` — ubah stop loss %
+- `tp` — ubah take profit % (fallback kalau trailing off)
+- `t` — toggle trailing take-profit on/off
+- `tg` — ubah trailing trigger % (PnL buat mulai "lock" peak)
+- `td` — ubah trailing drop % (seberapa turun dari peak buat trigger close)
+- `oor` — ubah toleransi waktu out-of-range (menit)
+
+**Indikator:**
+- `1`-`5` — toggle RSI / Bollinger / MACD / Supertrend / Fibonacci on/off
+- `m` — ubah berapa indikator harus setuju sebelum close
+- `p` — ubah PnL minimum sebelum indikator dipertimbangkan
+- `y` — toggle low yield close
+
+**Polling:**
+- `iv` — ubah poll interval (detik)
+- `ct` — ubah confirm ticks (berapa kali sinyal harus konsisten)
+
+**Kontrol bot:**
+- `r` — start bot (jalan di background, log ke `bot.log`)
+- `x` — stop bot
+
+**Lainnya:**
+- `s` — simpan & keluar
+- `q` — keluar tanpa simpan
+
+Menu-nya nunjukin status bot (RUNNING/STOPPED) dan mode (DRY_RUN/LIVE) di
+bagian atas, jadi lo selalu tau kondisi bot sebelum ubah apapun. Kalau nyimpen
+config baru sementara bot lagi jalan, dia ngingetin buat stop (`x`) terus
+start (`r`) lagi biar config barunya kepake — bot yang lagi jalan nggak
+otomatis reload config.
+
+Validasi juga ada di tiap field (misal stop loss harus negatif, take profit
+harus positif) — input yang nggak valid ditolak dan nilai lama tetep dipake.
 
 ## Konfigurasi (`config.json`)
 
@@ -85,7 +134,12 @@ Semua threshold ada di `config.json`, nggak perlu edit kode buat tuning:
 | `softSignals.indicators.bollinger.stdDevMult` | 2 | Lebar band Bollinger (dalam std dev) |
 | `softSignals.indicators.macd.*` | 12/26/9 | Periode fast/slow/signal standar MACD |
 | `softSignals.indicators.supertrend.*` | period 10, multiplier 3 | Parameter standar Supertrend |
+| `softSignals.indicators.fibonacci.lookback` | 50 | Berapa candle ke belakang buat nentuin swing high/low |
+| `softSignals.indicators.fibonacci.ratios` | 0.236/0.382/0.5/0.618/0.786 | Level retracement standar yang dicek |
 | `softSignals.lowYield.minFeePerValuePct24hEquiv` | 3 | Minimum fee yield (24h-equivalent %) sebelum dianggap nggak worth |
+
+Cara paling gampang ubah kebanyakan nilai di atas: `npm run menu` (lihat
+bagian di atas), daripada edit `config.json` manual.
 
 Ubah nilai di `config.json`, restart bot — nggak perlu ubah `config.js`.
 
@@ -142,6 +196,7 @@ executor.js                 → eksekusi close (claim fee → remove liquidity)
 notify.js                   → notifikasi Telegram opsional
 index.js                    → main loop
 update.sh                   → commit+push satu command (lihat bagian Update di atas)
+menu.js                      → menu interaktif buat toggle indikator/rules (npm run menu)
 ```
 
 ## Extend lebih lanjut

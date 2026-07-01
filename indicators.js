@@ -197,3 +197,41 @@ export function supertrend(candles, period = 10, multiplier = 3) {
     flippedBearish: prevTrendDir === "bullish" && trendDir === "bearish",
   };
 }
+
+/**
+ * Fibonacci retracement rejection — finds the swing high/low over a
+ * lookback window (excluding the most recent candle, so the swing is
+ * defined by history, not by the candle being evaluated), computes the
+ * standard retracement levels, and checks whether the latest candle
+ * touched a level intraday but closed back below it (a "rejection" —
+ * price rallied into resistance and got pushed back down).
+ *
+ * Returns { swingHigh, swingLow, levels, rejected, rejectedLevel }.
+ * `rejected: true` is the bearish signal; levels are measured as
+ * retracements down from the swing high (standard convention).
+ */
+export function fibonacciRejection(candles, lookback = 50, ratios = [0.236, 0.382, 0.5, 0.618, 0.786]) {
+  if (candles.length < lookback + 1) return null;
+
+  const swingCandles = candles.slice(-(lookback + 1), -1); // exclude the latest candle
+  const swingHigh = Math.max(...swingCandles.map((c) => c.high));
+  const swingLow = Math.min(...swingCandles.map((c) => c.low));
+  if (swingHigh <= swingLow) return null;
+
+  const range = swingHigh - swingLow;
+  const levels = ratios.map((ratio) => ({ ratio, price: swingHigh - range * ratio }));
+
+  const last = candles[candles.length - 1];
+  // Check levels from highest to lowest — a rejection at a higher
+  // resistance level is the more significant signal.
+  const sorted = [...levels].sort((a, b) => b.price - a.price);
+  const rejectedLevel = sorted.find((lvl) => last.high >= lvl.price && last.close < lvl.price) ?? null;
+
+  return {
+    swingHigh,
+    swingLow,
+    levels,
+    rejected: rejectedLevel != null,
+    rejectedLevel,
+  };
+}

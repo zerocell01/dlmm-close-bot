@@ -88,6 +88,11 @@ export const config = {
         period: userConfig.softSignals?.indicators?.supertrend?.period ?? 10,
         multiplier: userConfig.softSignals?.indicators?.supertrend?.multiplier ?? 3,
       },
+      fibonacci: {
+        enabled: userConfig.softSignals?.indicators?.fibonacci?.enabled ?? true,
+        lookback: userConfig.softSignals?.indicators?.fibonacci?.lookback ?? 50,
+        ratios: userConfig.softSignals?.indicators?.fibonacci?.ratios ?? [0.236, 0.382, 0.5, 0.618, 0.786],
+      },
     },
 
     // Low yield: fee earned relative to position value is too low to

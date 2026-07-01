@@ -24,7 +24,8 @@
       "rsi": { "enabled": true, "period": 14, "overbought": 75 },
       "bollinger": { "enabled": true, "period": 20, "stdDevMult": 2 },
       "macd": { "enabled": true, "fastPeriod": 12, "slowPeriod": 26, "signalPeriod": 9 },
-      "supertrend": { "enabled": true, "period": 10, "multiplier": 3 }
+      "supertrend": { "enabled": true, "period": 10, "multiplier": 3 },
+      "fibonacci": { "enabled": true, "lookback": 50, "ratios": [0.236, 0.382, 0.5, 0.618, 0.786] }
     },
     "lowYield": {
       "enabled": true,
