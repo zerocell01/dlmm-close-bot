@@ -1,0 +1,17 @@
+{
+  "name": "dlmm-close-bot",
+  "version": "1.0.0",
+  "description": "Standalone auto-close bot for Meteora DLMM positions. Open manual, close automated.",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@meteora-ag/dlmm": "^1.9.10",
+    "@solana/web3.js": "^1.98.4",
+    "bn.js": "^5.2.2",
+    "bs58": "^6.0.0",
+    "dotenv": "^17.2.3"
+  }
+}

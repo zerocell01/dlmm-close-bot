@@ -1,0 +1,32 @@
+{
+  "pollIntervalSec": 5,
+  "confirmTicks": 2,
+  "hardRules": {
+    "stopLossPct": -15,
+    "takeProfitPct": 8,
+    "trailing": {
+      "enabled": true,
+      "triggerPct": 3,
+      "dropPct": 1.5
+    },
+    "farAboveRangeBins": 10,
+    "outOfRangeWaitMinutes": 30
+  },
+  "softSignals": {
+    "enabled": true,
+    "rsi": {
+      "enabled": true,
+      "period": 14,
+      "overboughtLevel": 75,
+      "minPnlPctToAct": 1
+    },
+    "lowYield": {
+      "enabled": true,
+      "minFeePerValuePct24hEquiv": 3,
+      "minAgeMinutesBeforeCheck": 60
+    }
+  },
+  "execution": {
+    "maxTrackedPositions": 50
+  }
+}
