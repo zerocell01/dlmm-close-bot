@@ -30,8 +30,9 @@ proprietary Meridian.
   (default 2) sebelum bener-bener dieksekusi, biar nggak kepancing noise satu
   data point.
 - **State persisten** (`state.json`) — peak PnL, status trailing, timer OOR,
-  histori harga buat RSI — semua disimpen ke disk, jadi kalau bot restart
-  nggak kehilangan progress tracking.
+  disimpen ke disk, jadi kalau bot restart nggak kehilangan progress
+  tracking. Data candle indikator **nggak** disimpen di sini — itu cuma
+  di-cache di memory (`ohlcv.js`), aman di-refresh ulang tiap restart.
 
 ## Setup
 
@@ -49,6 +50,19 @@ keputusannya masuk akal, baru set `DRY_RUN=false`.
 ```bash
 npm start
 ```
+
+## Update ke versi terbaru / push perubahan
+
+Kalau lo ubah kode atau config dan mau commit+push ke GitHub, tinggal:
+
+```bash
+chmod +x update.sh   # sekali aja
+./update.sh                              # commit message otomatis (timestamp)
+./update.sh "ubah stop loss jadi -20%"   # atau custom message
+```
+
+Script ini otomatis nolak jalan kalau `.env` ketauan nggak ke-`.gitignore` —
+jadi private key nggak akan pernah ke-push tanpa sengaja.
 
 ## Konfigurasi (`config.json`)
 
@@ -78,8 +92,13 @@ Ubah nilai di `config.json`, restart bot — nggak perlu ubah `config.js`.
 ## Yang perlu lo tau soal desain ini
 
 - **RPC**: `RPC_URL` (buat kirim transaksi) sebaiknya RPC berbayar/reliable
-  (Helius dll). `POLL_RPC_URL` (buat baca posisi tiap 5 detik) defaultnya
-  endpoint publik — read-only, low volume, aman pake gratisan.
+  (Helius dll) — ini yang motong kuota kredit bulanan lo. `POLL_RPC_URL`
+  (buat baca posisi tiap 5 detik) defaultnya endpoint publik gratis
+  (`pump.helius-rpc.com`) — endpoint ini **terpisah total** dari API key
+  berbayar lo, jadi polling sesering apapun nggak motong kredit sama sekali.
+  Trade-off-nya: endpoint publik itu shared (rate limit ~100-200 req/detik
+  per IP, nggak ada SLA), tapi buat beberapa posisi itu jauh di bawah limit
+  jadi aman.
 - **Nggak ada auto-deploy** — bot ini murni close-only. Kalau posisi lo abis
   ditutup, bot nggak akan buka posisi baru; lo yang deploy manual lagi kalau
   mau.
@@ -115,13 +134,14 @@ config.js / config.json   → semua threshold, gampang di-tuning
 wallet.js                 → koneksi RPC (tx vs poll dipisah) + wallet keypair
 positions.js               → auto-discover posisi wallet + enrich PnL
 state.js                   → persist peak/trailing/OOR (survive restart)
-ohlcv.js                    → fetch+cache candle harga dari GeckoTerminal
+ohlcv.js                    → fetch+cache candle harga (Meteora resmi, fallback GeckoTerminal)
 indicators.js               → math RSI/Bollinger/MACD/Supertrend (pure functions)
 signals.js                  → gabungin indikator jadi voting/confluence
 rules.js                    → engine keputusan close (hard rules → soft signals)
 executor.js                 → eksekusi close (claim fee → remove liquidity)
 notify.js                   → notifikasi Telegram opsional
 index.js                    → main loop
+update.sh                   → commit+push satu command (lihat bagian Update di atas)
 ```
 
 ## Extend lebih lanjut
@@ -133,6 +153,7 @@ index.js                    → main loop
   dengan ganti simple vote-count di `signals.js` jadi weighted score.
 - Tambah scope per-pool (misal threshold beda buat pool stabil vs memecoin)
   dengan nge-lookup `position.pool` ke config override.
-- Kalau GeckoTerminal rate-limit jadi masalah (banyak posisi sekaligus),
-  naikin `cacheTtlSec` atau ganti sumber candle ke provider lain di
-  `ohlcv.js` — fungsi `getCandles()` itu satu-satunya tempat yang perlu diubah.
+- Kalau rate-limit OHLCV jadi masalah (banyak posisi sekaligus), naikin
+  `cacheTtlSec` — `getCandles()` di `ohlcv.js` udah otomatis coba Meteora
+  dulu baru fallback ke GeckoTerminal, jadi biasanya nggak perlu ganti
+  provider manual kecuali kedua-duanya kena limit bareng.
