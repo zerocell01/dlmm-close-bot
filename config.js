@@ -53,17 +53,41 @@ export const config = {
   softSignals: {
     enabled: userConfig.softSignals?.enabled ?? true,
 
-    // Self-collected RSI, computed locally from the price ticks this bot
-    // observes during polling (no external OHLCV dependency). Needs a
-    // warm-up period before it has enough samples to be meaningful.
-    rsi: {
-      enabled: userConfig.softSignals?.rsi?.enabled ?? true,
-      period: userConfig.softSignals?.rsi?.period ?? 14,
-      overboughtLevel: userConfig.softSignals?.rsi?.overboughtLevel ?? 75,
-      // Only close on an RSI-overbought soft signal if PnL is already
-      // positive by at least this much — avoids preemptively closing a
-      // losing position just because RSI looks stretched.
-      minPnlPctToAct: userConfig.softSignals?.rsi?.minPnlPctToAct ?? 1,
+    // Multi-indicator confluence, computed from REAL OHLCV candles fetched
+    // from GeckoTerminal's free public API (no key needed). Each indicator
+    // votes bearish/not-bearish independently; a close only fires once
+    // `minSignalsAgree` of them agree AND PnL is already positive by at
+    // least `minPnlPctToAct` — this is a preventive/soft exit, never a
+    // reason to close a losing position on its own.
+    indicators: {
+      enabled: userConfig.softSignals?.indicators?.enabled ?? true,
+      // Meteora OHLCV timeframe values: "5m" | "30m" | "1h" | "2h" | "4h" | "12h" | "24h"
+      timeframe: userConfig.softSignals?.indicators?.timeframe ?? "5m",
+      candleLimit: userConfig.softSignals?.indicators?.candleLimit ?? 100,
+      cacheTtlSec: userConfig.softSignals?.indicators?.cacheTtlSec ?? 60,
+      minPnlPctToAct: userConfig.softSignals?.indicators?.minPnlPctToAct ?? 1,
+      minSignalsAgree: userConfig.softSignals?.indicators?.minSignalsAgree ?? 2,
+      rsi: {
+        enabled: userConfig.softSignals?.indicators?.rsi?.enabled ?? true,
+        period: userConfig.softSignals?.indicators?.rsi?.period ?? 14,
+        overbought: userConfig.softSignals?.indicators?.rsi?.overbought ?? 75,
+      },
+      bollinger: {
+        enabled: userConfig.softSignals?.indicators?.bollinger?.enabled ?? true,
+        period: userConfig.softSignals?.indicators?.bollinger?.period ?? 20,
+        stdDevMult: userConfig.softSignals?.indicators?.bollinger?.stdDevMult ?? 2,
+      },
+      macd: {
+        enabled: userConfig.softSignals?.indicators?.macd?.enabled ?? true,
+        fastPeriod: userConfig.softSignals?.indicators?.macd?.fastPeriod ?? 12,
+        slowPeriod: userConfig.softSignals?.indicators?.macd?.slowPeriod ?? 26,
+        signalPeriod: userConfig.softSignals?.indicators?.macd?.signalPeriod ?? 9,
+      },
+      supertrend: {
+        enabled: userConfig.softSignals?.indicators?.supertrend?.enabled ?? true,
+        period: userConfig.softSignals?.indicators?.supertrend?.period ?? 10,
+        multiplier: userConfig.softSignals?.indicators?.supertrend?.multiplier ?? 3,
+      },
     },
 
     // Low yield: fee earned relative to position value is too low to

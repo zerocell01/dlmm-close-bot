@@ -24,7 +24,7 @@ async function tick() {
 
     for (const position of positions) {
       touchPosition(position.position);
-      const decision = evaluatePosition(position);
+      const decision = await evaluatePosition(position);
 
       const { fire } = registerExitSignal(
         position.position,

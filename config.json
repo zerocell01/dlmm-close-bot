@@ -14,11 +14,17 @@
   },
   "softSignals": {
     "enabled": true,
-    "rsi": {
+    "indicators": {
       "enabled": true,
-      "period": 14,
-      "overboughtLevel": 75,
-      "minPnlPctToAct": 1
+      "timeframe": "5m",
+      "candleLimit": 100,
+      "cacheTtlSec": 60,
+      "minPnlPctToAct": 1,
+      "minSignalsAgree": 2,
+      "rsi": { "enabled": true, "period": 14, "overbought": 75 },
+      "bollinger": { "enabled": true, "period": 20, "stdDevMult": 2 },
+      "macd": { "enabled": true, "fastPeriod": 12, "slowPeriod": 26, "signalPeriod": 9 },
+      "supertrend": { "enabled": true, "period": 10, "multiplier": 3 }
     },
     "lowYield": {
       "enabled": true,

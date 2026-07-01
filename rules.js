@@ -5,11 +5,10 @@ import {
   markInRange,
   markOutOfRange,
   minutesOutOfRange,
-  recordPriceSample,
-  getPriceHistory,
   setTrailingActive,
 } from "./state.js";
-import { computeRsi } from "./indicators.js";
+import { getCandles } from "./ohlcv.js";
+import { evaluateIndicatorSignals } from "./signals.js";
 import { log } from "./logger.js";
 
 /**
@@ -21,10 +20,11 @@ import { log } from "./logger.js";
  *   4. static take-profit (fallback — mainly fires when trailing is disabled,
  *      or as a safety ceiling before trailing has a chance to activate)
  *   5. out-of-range timeout
- *   6. [soft] RSI overbought while already in profit
+ *   6. [soft] multi-indicator confluence (RSI/Bollinger/MACD/Supertrend agree
+ *      bearish) while already in profit
  *   7. [soft] low yield (fee/value too low for too long)
  */
-export function evaluatePosition(position) {
+export async function evaluatePosition(position) {
   const { hardRules, softSignals, confirmTicks } = config;
   const posState = getPositionState(position.position);
 
@@ -96,22 +96,30 @@ export function evaluatePosition(position) {
 
   // ── Soft signals (only reached if no hard rule fired) ───────────────
   if (softSignals.enabled && pnlPct != null) {
-    // Feed the local price/PnL history used for RSI.
-    recordPriceSample(position.position, pnlPct);
+    const indCfg = softSignals.indicators;
+    if (indCfg.enabled && pnlPct >= indCfg.minPnlPctToAct) {
+      const candles = await getCandles({
+        poolAddress: position.pool,
+        timeframe: indCfg.timeframe,
+        limit: indCfg.candleLimit,
+        cacheTtlSec: indCfg.cacheTtlSec,
+      });
 
-    if (softSignals.rsi.enabled) {
-      const history = getPriceHistory(position.position);
-      const rsi = computeRsi(history, softSignals.rsi.period);
-      if (
-        rsi != null &&
-        rsi >= softSignals.rsi.overboughtLevel &&
-        pnlPct >= softSignals.rsi.minPnlPctToAct
-      ) {
-        return {
-          action: "CLOSE",
-          reason: `RSI overbought (${rsi.toFixed(1)}) while in profit (${pnlPct.toFixed(2)}%) — preventive exit`,
-          rule: "rsi_overbought",
-        };
+      if (candles && candles.length > 0) {
+        const result = evaluateIndicatorSignals(candles, indCfg);
+        if (result.agrees) {
+          const agreeing = Object.entries(result.details)
+            .filter(([, v]) => v.bearish)
+            .map(([k]) => k)
+            .join(", ");
+          return {
+            action: "CLOSE",
+            reason: `${result.bearishVotes}/${result.totalVotes} indicators bearish (${agreeing}) while in profit (${pnlPct.toFixed(2)}%) — preventive exit`,
+            rule: "indicator_confluence",
+          };
+        }
+      } else {
+        log("rules_skip", `${position.position.slice(0, 8)}: no candle data available, skipping indicator check`);
       }
     }
 

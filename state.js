@@ -37,7 +37,6 @@ function getOrInit(positionAddress) {
       out_of_range_since: null,
       pending_exit_signal: null,
       pending_exit_confirm_count: 0,
-      price_history: [], // [{t, price}] used to compute local RSI
       last_seen_at: new Date().toISOString(),
     };
   }
@@ -127,23 +126,6 @@ export function registerExitSignal(positionAddress, signal, confirmTicks) {
   }
   persist();
   return { fire: s.pending_exit_confirm_count >= confirmTicks };
-}
-
-// ── Local price history (for self-computed RSI, no external OHLCV needed) ──
-const MAX_PRICE_SAMPLES = 200;
-
-export function recordPriceSample(positionAddress, price) {
-  if (price == null || !Number.isFinite(price)) return;
-  const s = getOrInit(positionAddress);
-  s.price_history.push({ t: Date.now(), price });
-  if (s.price_history.length > MAX_PRICE_SAMPLES) {
-    s.price_history = s.price_history.slice(-MAX_PRICE_SAMPLES);
-  }
-  persist();
-}
-
-export function getPriceHistory(positionAddress) {
-  return getOrInit(positionAddress).price_history;
 }
 
 export function removePositionState(positionAddress) {
